@@ -1,10 +1,9 @@
-import os
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "foodtruck.settings")
-
 import psycopg2
 import csv
 import itertools
 from datetime import datetime, timedelta
+from urllib2 import URLError
+from geopy.geocoders.googlev3 import GoogleV3
 
 try:
     conn = psycopg2.connect("dbname='foodtruck_db' user='inna'")
@@ -69,27 +68,15 @@ def foodParser(food):
         food = food.split(':')
     return food
 
-from urllib2 import URLError
-from geopy.geocoders.googlev3 import GoogleV3
 
 def truncate(entry):
     if len(entry) < 100:
         return entry
     return entry[:97] + "..."
 
-"""
-0: locationid
-1: Applicant
-2: FacilityType
-4: LocationDescription
-5: Address
-10: Status
-11: FoodItems
-14: Latitude
-15: Longitude
-17: dayshours
-22: ExpirationDate
-"""
+##########################################################
+############ SQL INSERTION FUNCTIONS #####################
+##########################################################
 
 def scheduleSQL(schedule, applicant, status, expirationDate):
     if len(expirationDate) != 22:
@@ -125,11 +112,20 @@ def foodSQL(locationId, food):
         f = truncate(food)
         cur.execute('INSERT INTO food_menu (truck_id, item) VALUES (%s, %s)', (locationId, f))
 
-with open('food.csv') as csvfile:
-    reader = csv.reader(csvfile)
-    headers = reader.next()
-    print headers
-    for line in reader:
+def data():
+    truckData = []
+    with open('food.csv') as csvfile:
+        reader = csv.reader(csvfile)
+        headers = reader.next()
+        print headers
+        for line in reader:
+            truckData.append(line)
+    return truckData
+
+
+def main():
+    data = data()
+    for line in data:
         locationId = line[0]
         applicant = line[1]
         facilityType = line[2]
@@ -141,16 +137,20 @@ with open('food.csv') as csvfile:
         longitude = line[15]
         dayshours = line[17]
         expirationDate = line[22]
-        # truckSQL(locationId, applicant, facilityType, locationDescription, address, latitude, longitude)
-        # if dayshours:
-            # schedule = timeParser(dayshours)
-            # scheduleSQL(schedule, applicant, status, expirationDate)
+        truckSQL(locationId, applicant, facilityType, locationDescription, address, latitude, longitude)
+        if dayshours:
+            schedule = timeParser(dayshours)
+            scheduleSQL(schedule, applicant, status, expirationDate)
         food = foodParser(foodItems)
         if food:
             foodSQL(locationId, food)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+if __name__ == "__main__":
+    main()
 
 
-conn.commit()
-cur.close()
-conn.close()
+
 
