@@ -23,7 +23,7 @@ function initMap() {
   var map, marker, geocoder;
   map = new google.maps.Map(document.getElementById('map'), {
     center: {lat: 37.773972, lng: -122.431297},
-    zoom: 12
+    zoom: {{ z }}
   });
     var i = 0;
 
@@ -45,6 +45,11 @@ function initMap() {
         );
         i++;
     {% endfor %}
+    var zoomLvl = map.getZoom();
+
+    google.maps.event.addListener(map, 'click', function(event) {
+    window.location = '/?lat='+event.latLng.lat()+'&lon='+event.latLng.lng()+'&zoom='+zoomLvl;
+        });
 }
     </script>
     <script src="https://maps.googleapis.com/maps/api/js?callback=initMap"
