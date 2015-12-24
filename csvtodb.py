@@ -12,7 +12,7 @@ except:
 
 cur = conn.cursor()
 
-def timeParser(time):
+def timeParser(time, truck=True):
     abbrDays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
     parsedDays = []
     time = time.split(":")
@@ -35,39 +35,41 @@ def timeParser(time):
         hours = [hours]
     parsedDays = sorted(set(parsedDays), key=lambda x: parsedDays.index(x))
     permu = list(itertools.product(parsedDays, hours))
-    newPermu = []
-    for p in permu:
-        newHours = []
-        hours = p[1].split('-')
-        for hour in hours:
-            if 'PM' in hour:
-                if '12' in hour:
-                    nhour = int(hour[:-2])
-                else:
-                    nhour = (int(hour[:-2]) + 12) % 24
-                newHours.append(nhour)
-            if 'AM' in hour:
-                if '12' in hour:
-                    nhour = 0
-                else:
-                    nhour = int(hour[:-2])
-                newHours.append(nhour)
-        if newHours[0] > newHours[1] and newHours[1] != 0:
-            idx = abbrDays.index(p[0])
-            hour1 = p[0], [newHours[0], 0]
-            hour2 = abbrDays[(idx+1)%7], [0, newHours[1]]
-            newPermu.append(hour1)
-            newPermu.append(hour2)
-        else:
-            newHours = p[0], newHours
-            newPermu.append(newHours)
-    return newPermu
+    if truck:
+        dh = ', '.join([': '.join(pm) for pm in permu])
+        print dh
+        return dh
+    else:
+        newPermu = []
+        for p in permu:
+            newHours = []
+            hours = p[1].split('-')
+            for hour in hours:
+                if 'PM' in hour:
+                    if '12' in hour:
+                        nhour = int(hour[:-2])
+                    else:
+                        nhour = (int(hour[:-2]) + 12) % 24
+                    newHours.append(nhour)
+                if 'AM' in hour:
+                    if '12' in hour:
+                        nhour = 0
+                    else:
+                        nhour = int(hour[:-2])
+                    newHours.append(nhour)
+            if newHours[0] > newHours[1] and newHours[1] != 0:
+                idx = abbrDays.index(p[0])
+                hour1 = p[0], [newHours[0], 0]
+                hour2 = abbrDays[(idx+1)%7], [0, newHours[1]]
+                newPermu.append(hour1)
+                newPermu.append(hour2)
+            else:
+                newHours = p[0], newHours
+                newPermu.append(newHours)
+        return newPermu
 
 def foodParser(food):
-    if ':' in food:
-        food = food.split(':')
-    return food
-
+    return [x.strip().lower() for x in food.split(':')]
 
 def truncate(entry):
     if len(entry) < 100:
@@ -78,17 +80,17 @@ def truncate(entry):
 ############ SQL INSERTION FUNCTIONS #####################
 ##########################################################
 
-def scheduleSQL(schedule, applicant, status, expirationDate):
-    if len(expirationDate) != 22:
-        expirationDate = datetime.now() + timedelta(days=365)
+def scheduleSQL(schedule, applicant, locationId):
     for s in schedule:
         day = s[0]
         start_hour = "%s:00" % s[1][0]
         end_hour = "%s:00" % s[1][1]
         print locationId, s[0], s[1][0], s[1][1]
-        cur.execute('INSERT INTO food_schedule (truck_id, day, start_hour, end_hour, status, expiration_date) VALUES (%s, %s, %s, %s, %s, %s)', (locationId, day, start_hour, end_hour, status, expirationDate))
+        cur.execute('INSERT INTO food_schedule (truck_id, day, start_hour, end_hour) VALUES (%s, %s, %s, %s)', (locationId, day, start_hour, end_hour))
 
-def truckSQL(locationId, applicant, facilityType, locationDescription, address, latitude, longitude):
+def truckSQL(locationId, applicant, facilityType, locationDescription, address, latitude, longitude, foodItems, schedule, status, expirationDate):
+    if len(expirationDate) != 22:
+        expirationDate = datetime.now() + timedelta(days=365)
     if not latitude or not longitude:
         address = '%s, San Francisco' % (address)
         geocoder = GoogleV3(timeout=None)
@@ -99,20 +101,22 @@ def truckSQL(locationId, applicant, facilityType, locationDescription, address, 
             latitude = 0.0
             longitude = 0.0
     latlon = "POINT(%s %s)" % (latitude, longitude)
-    print locationId, applicant, facilityType, locationDescription, address, latlon, latitude, longitude
+    print locationId, applicant, facilityType, locationDescription, address, latlon, latitude, longitude, foodItems, schedule, status, expirationDate
 
-    cur.execute('INSERT INTO food_truck (truck_id, name, facility_type, location_description, address, latlon, lat, lon) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', (locationId, applicant, facilityType, locationDescription, address, latlon, latitude, longitude))
+    cur.execute('INSERT INTO food_truck (truck_id, name, facility_type, location_description, address, latlon, lat, lon, food_item, dayhour, status, expiration_date) \
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', (locationId, applicant, facilityType, locationDescription, address, latlon, latitude, longitude, foodItems, schedule, status, expirationDate))
 
 def foodSQL(locationId, food):
     if type(food) == list:
         for f in food:
+            f = truncate(f)
             print locationId, f
             cur.execute('INSERT INTO food_menu (truck_id, item) VALUES (%s, %s)', (locationId, f))
     else:
         f = truncate(food)
         cur.execute('INSERT INTO food_menu (truck_id, item) VALUES (%s, %s)', (locationId, f))
 
-def data():
+def getData():
     truckData = []
     with open('food.csv') as csvfile:
         reader = csv.reader(csvfile)
@@ -122,9 +126,8 @@ def data():
             truckData.append(line)
     return truckData
 
-
 def main():
-    data = data()
+    data = getData()
     for line in data:
         locationId = line[0]
         applicant = line[1]
@@ -137,13 +140,14 @@ def main():
         longitude = line[15]
         dayshours = line[17]
         expirationDate = line[22]
-        truckSQL(locationId, applicant, facilityType, locationDescription, address, latitude, longitude)
-        if dayshours:
-            schedule = timeParser(dayshours)
-            scheduleSQL(schedule, applicant, status, expirationDate)
-        food = foodParser(foodItems)
-        if food:
-            foodSQL(locationId, food)
+        # if dayshours:
+            #schedule = timeParser(dayshours)
+            #truckSQL(locationId, applicant, facilityType, locationDescription, address, latitude, longitude, foodItems, schedule, status, expirationDate)
+            # schedule = timeParser(dayshours, truck=False)
+            # scheduleSQL(schedule, applicant, locationId)
+        if foodItems and dayshours:
+           food = foodParser(foodItems)
+           foodSQL(locationId, food)
     conn.commit()
     cur.close()
     conn.close()

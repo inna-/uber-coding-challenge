@@ -1,64 +1,206 @@
 <!DOCTYPE html>
-<html>
+{% load staticfiles %}
+<html lang="en">
   <head>
-    <title>Food Trucks in San Francisco</title>
-    <meta name="viewport" content="initial-scale=1.0">
     <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Foodtruck in San Francisco</title>
+
+    <!-- Bootstrap -->
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet" media="screen">
+    <link href="{% static 'css/bootstrap-theme.min.css' %}" rel="stylesheet">
     <style>
-      html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
+    #map {
+      height: 600px;
+      width: 1000px;
+    }
+    body {
+        padding-top: 70px;
       }
-      #map {
-        height: 100%;
+
+      .theme-dropdown .dropdown-menu {
+        position: static;
+        display: block;
+        margin-bottom: 20px;
       }
-    </style>
+
+      .theme-showcase > p > .btn {
+        margin: 5px 0;
+      }
+
+      .theme-showcase .navbar .container {
+        width: auto;
+      }
+      </style>
   </head>
   <body>
-    <div id="map"></div>
-    <script>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Food Truck in San Francisco</a>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="#">Home</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
 
-function initMap() {
-  var map, marker, geocoder;
-  map = new google.maps.Map(document.getElementById('map'), {
-    center: {lat: 37.773972, lng: -122.431297},
-    zoom: {{ z }}
-  });
-    var i = 0;
+<div class="row">
+  <div class="col-lg-6 pull-right" >
+    <div class="input-group">
+      
+    </div><!-- /input-group -->
+  </div><!-- /.col-lg-6 -->
+</div><!-- /.row -->
 
-    var infowindow = new google.maps.InfoWindow();
+  <div class="container-fluid">
+    <div class="row-fluid content">
+      <div class="col-lg-9">
+        <div id="map"></div>
+      </div>
+      <div class="col-lg-3">  
+        <ul class="nav nav-pills nav-stacked">
+        <form name="foodtruck" action="/" method="get">
+        <li class="input-group"><input type="text" class="form-control" placeholder="Search for..."><span class="input-group-btn"><button class="btn btn-default" type="submit">Go!</button></span></li>
+          <li class="list-group-item"> <label><span class="badge">{{ len }}</span> Dueji Stuff Found</label></li>
+            <button type="button" class="list-group-item"><label><input type="checkbox" name="all" value="all" onclick="UnCheckAll(document.foodtruck.food) ; this.form.submit();"> All</label></button>
+            {% for f in foodtypes %}
+            <button type="button" class="list-group-item"><label><input type="checkbox" name="food" value="{{ f.val }}" {% if f.chked == True %}checked{% endif %} onclick="checkObj(this); this.form.submit();">{{ f.label }}</label></button>
+            {% endfor %}
+          </form>
+        </ul>  
+      </div>  
+    </div>
+  </div>
 
+{% if qs %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>Truck/Cart</th>
+            <th>Address</th>
+            <th>Schedule</th>
+            <th>Menu</th>
+        </tr>
+    </thead>
+    <tbody>
     {% for q in qs %}
-        var latlng = {lat: {{ q.lat }}, lng: {{ q.lon }} };
-        marker = new google.maps.Marker({
-        position: latlng,
-        map: map
-        });
-        google.maps.event.addListener(
-            marker, 'click', (function(marker, i) {
-                return function() {
-                    infowindow.setContent("{{ q.name }}, {{ q.address }}");
-                    infowindow.open(map, marker);
-                    }
-                })(marker, i)
-        );
-        i++;
+        <tr class="active">
+            <td>{{ q.name }}</td>
+            <td>{{ q.address }}</td>
+            <td>{{ q.dayhour}}</td>
+            <td>{{ q.food_item}}</td>
+        </tr>
     {% endfor %}
-    var zoomLvl = map.getZoom();
+    </tbody>
+</table>
+{% endif %}
 
-    google.maps.event.addListener(map, 'click', function(event) {
-    window.location = '/?lat='+event.latLng.lat()+'&lon='+event.latLng.lng()+'&zoom='+zoomLvl;
-        });
-}
+  <script>
+  var chkobj = {"food" : new Set()};
+  function initMap() {
+    var map, marker, geocoder;
+    //var img = new Image();
+    //img.src="{% static 'images/truck.png' %}";
+    map = new google.maps.Map(document.getElementById('map'), {
+      center: {lat: 37.773972, lng: -122.431297},
+      zoom: {{z}}
+    });
+      var i = 0;
+
+      var infowindow = new google.maps.InfoWindow();
+
+      {% for q in qs %}
+          var latlng = {lat: {{ q.lat }}, lng: {{ q.lon }} };
+          marker = new google.maps.Marker({
+          position: latlng,
+          map: map
+          //icon: image
+          });
+          google.maps.event.addListener(
+              marker, 'click', (function(marker, i) {
+                  return function() {
+                      infowindow.setContent("{{ q.name }}, {{ q.address }}");
+                      infowindow.open(map, marker);
+                      }
+                  })(marker, i)
+          );
+          i++;
+      {% endfor %}
+
+      google.maps.event.addListener(map, 'click', function(event) {  // map click
+        url = getPara();
+        url += "lat="+event.latLng.lat()+'&lon='+event.latLng.lng();  // add lat & lon
+      window.location = url;
+    });
+      {% for f in foodtypes %}
+        {% if f.chked == True %}
+        chkobj['food'].add('{{ f.val }}');
+      {% endif %}
+    {% endfor %}
+  }
+
+  function checkObj(cb) {
+    if(cb.checked == true) {
+      chkobj[cb.name].add(cb.value);  // set operation
+    } else {
+      chkobj[cb.name].delete(cb.value);
+    }
+    url = getPara();
+    window.location = url;
+  }
+
+  function getPara() {
+    var uri = "/?";   // root URL
+    
+    for (var key in chkobj) {
+       if (chkobj.hasOwnProperty(key)) {
+         for (var s of chkobj[key]) {
+           uri += key + "=" + s + "&"; //s + " ";
+         }
+       }
+    }
+    return uri;
+  }
+
+  function enterUrl() {
+    url = getPara();
+    window.location = url;
+  }
+
+    function CheckAll(chk)  {
+    for (i = 0; i < chk.length; i++) {
+      chk[i].checked = true ;
+      chkobj[chk[i].name].add(chk[i].value);
+    }
+    url = getPara();
+    window.location = url;
+  }
+
+  function UnCheckAll(chk)  {
+    for (i = 0; i < chk.length; i++) {
+      chk[i].checked = false ;
+      chkobj[chk[i].name].delete(chk[i].value);
+    }
+    url = getPara();
+    window.location = url;
+  }
+  </script>
+    <script type="text/javascript">
+        DJANGO_STATIC_URL = '{{ STATIC_URL }}';
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?callback=initMap"
-        async defer></script>
 
-    {% for q in qs %}
-    {% for hour in q.schedule_set.all %}
-    <p>{{ q.name }} {{ q.address}} {{ hour.day }} {{ hour.start_hour }} {{ hour.end_hour }} </p>
-    {% endfor %}
-    {% endfor %}
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?callback=initMap"
+      async defer></script>
   </body>
 </html>

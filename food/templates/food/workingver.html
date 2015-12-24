@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+{% load staticfiles %}
+<html>
+  <head>
+    <title>Food Trucks in San Francisco</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <link href="{% static 'css/bootstrap-fluid-adj.css' %}" rel="stylesheet">
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet" media="screen">
+    <link href="{% static 'css/bootstrap-responsive.css' %}" rel="stylesheet">
+    
+    <style>
+    /*SEARCH FORM*/
+    .search-form {
+    border-radius: 30px 0px 0px 30px;
+    /*border-radius:Top-left, Top-right, Bottom-right, Bottom-left;*/
+    }
+    /*to cange only one form and not all give unique class name like  class="search-form" */
+     .search-btn {
+        border-radius: 0px 30px 30px 0px;
+        cursor:pointer;
+    }
+    #header,
+  	#footer {
+  		background-color: #f1f1f1;
+  	}
+  	#header,
+  	#footer {
+  		min-height: 40px;
+  	}
+    #map{
+    height: 500px;
+    width: 500px;
+    }
+    </style>
+  </head>
+
+  <body>
+  
+  <div id="header">Food Trucks in San Francisco</div>
+   <div class="container-fluid">
+    <div class="row-fluid content">
+      <div class="col-lg-6">
+        <div id="map"></div>
+      </div>
+      <div class="col-lg-6">
+          {% for q in qs %}
+          <p>{{ q.name }}, {{ q.address}}</p>
+          {% endfor %}
+      </div>
+    </div>
+  </div>
+    
+    z<script>
+
+function initMap() {
+  var map, marker, geocoder;
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: {lat: 37.773972, lng: -122.431297},
+    zoom: {{z}}
+  });
+    var i = 0;
+
+    var infowindow = new google.maps.InfoWindow();
+
+    {% for q in qs %}
+        var latlng = {lat: {{ q.lat }}, lng: {{ q.lon }} };
+        marker = new google.maps.Marker({
+        position: latlng,
+        map: map
+        });
+        google.maps.event.addListener(
+            marker, 'click', (function(marker, i) {
+                return function() {
+                    infowindow.setContent("{{ q.name }}, {{ q.address }}");
+                    infowindow.open(map, marker);
+                    }
+                })(marker, i)
+        );
+        i++;
+    {% endfor %}
+    var zoomLvl = map.getZoom();
+
+    google.maps.event.addListener(map, 'click', function(event) {
+    window.location = '/?lat='+event.latLng.lat()+'&lon='+event.latLng.lng()+'&zoom='+zoomLvl;
+        });
+}
+    </script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?callback=initMap"
+        async defer></script>
+  </body>
+</html>

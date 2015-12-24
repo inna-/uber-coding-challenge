@@ -16,7 +16,11 @@ class Truck(models.Model):
     address = models.CharField(max_length=100)
     lat = models.FloatField(default=0.0)
     lon = models.FloatField(default=0.0)
-    latlon = gis_models.PointField(srid=4326, geography=True, blank=True,                                    null=True)
+    food_item = models.CharField(max_length=500, default=None)
+    latlon = gis_models.PointField(srid=4326, geography=True, blank=True, null=True)
+    dayhour = models.CharField(max_length=500, default=None)
+    status = models.CharField(max_length=50, default='REQUESTED')
+    expiration_date = models.DateTimeField(default=datetime.now() + timedelta(days=365))
 
     def __unicode__(self):
         return self.name
@@ -41,9 +45,7 @@ class Schedule(models.Model):
     day = models.CharField(max_length=2)
     start_hour = models.TimeField()
     end_hour = models.TimeField()
-    status = models.CharField(max_length=50, default='REQUESTED')
-    expiration_date = models.DateTimeField(default=datetime.now() + timedelta(days=365))
-
+    
     def __unicode__(self):
         return u'%s %s %s %s' % (self.truck, self.day, self.start_hour, self.end_hour)
 
