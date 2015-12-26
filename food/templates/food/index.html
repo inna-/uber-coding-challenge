@@ -69,11 +69,12 @@
       <div class="col-lg-3">  
         <ul class="nav nav-pills nav-stacked">
         <form name="foodtruck" action="/" method="get">
-        <li class="input-group"><input type="text" class="form-control" placeholder="Search for..."><span class="input-group-btn"><button class="btn btn-default" type="submit">Go!</button></span></li>
-          <li class="list-group-item"> <label><span class="badge">{{ len }}</span> Dueji Stuff Found</label></li>
-            <button type="button" class="list-group-item"><label><input type="checkbox" name="all" value="all" onclick="UnCheckAll(document.foodtruck.food) ; this.form.submit();"> All</label></button>
+          <li class="list-group-item"> <label><span class="badge">{{ len }}</span> Food Truck/Carts Found</label></li>
+          {% for a in alltypes %}
+            <button type="button" class="list-group-item"><label><input type="checkbox" name="all" value="{{ a.val }}" onclick="UnCheckAll(document.foodtruck.food); this.form.submit();"> {{ a.label}}</label></button>
+            {% endfor %}
             {% for f in foodtypes %}
-            <button type="button" class="list-group-item"><label><input type="checkbox" name="food" value="{{ f.val }}" {% if f.chked == True %}checked{% endif %} onclick="checkObj(this); this.form.submit();">{{ f.label }}</label></button>
+            <button type="button" class="list-group-item"><label><input type="checkbox" name="food" value="{{ f.val }}" {% if f.chked == True %}checked{% endif %} onclick="checkObj(this); this.form.submit();"> {{ f.label }}</label></button>
             {% endfor %}
           </form>
         </ul>  
@@ -81,31 +82,34 @@
     </div>
   </div>
 
-{% if qs %}
+
 <table class="table">
-    <thead>
-        <tr>
-            <th>Truck/Cart</th>
-            <th>Address</th>
-            <th>Schedule</th>
-            <th>Menu</th>
-        </tr>
-    </thead>
+  <thead>
+    <tr>
+      <th>Truck/Cart</th>
+      <th>Address</th>
+      <th>Schedule</th>
+      <th>Menu</th>
+    </tr>
+  </thead>
+  {% if qs %}
     <tbody>
-    {% for q in qs %}
+      {% for q in qs %}
         <tr class="active">
-            <td>{{ q.name }}</td>
-            <td>{{ q.address }}</td>
-            <td>{{ q.dayhour}}</td>
-            <td>{{ q.food_item}}</td>
+          <td>{{ q.name }}</td>
+          <td>{{ q.address }}</td>
+          <td>{{ q.dayhour}}</td>
+          <td>{{ q.food_item}}</td>
         </tr>
-    {% endfor %}
+      {% endfor %}
     </tbody>
+  {% endif %}
 </table>
-{% endif %}
+
 
   <script>
   var chkobj = {"food" : new Set()};
+  var allobj = {"all": new Set()};
   function initMap() {
     var map, marker, geocoder;
     //var img = new Image();
@@ -141,11 +145,18 @@
         url += "lat="+event.latLng.lat()+'&lon='+event.latLng.lng();  // add lat & lon
       window.location = url;
     });
-      {% for f in foodtypes %}
-        {% if f.chked == True %}
+    {% for f in foodtypes %}
+      {% if f.chked == True %}
         chkobj['food'].add('{{ f.val }}');
       {% endif %}
     {% endfor %}
+
+    {% for a in alltypes %}
+      {% if a.chked == True %}
+        chkobj['all'].add('{{ a.val }}');
+      {% endif %}
+    {% endfor %}
+
   }
 
   function checkObj(cb) {

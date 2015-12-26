@@ -26,6 +26,7 @@ weekday = {
 }
 
 def index(request):
+    alls = [{'val': 'all', 'chked':False, 'label':'All'}]
     foodtypes = [    
         {'val': 'openNow', 'chked':False, 'label':'Open Now'},
         {'val':'sandwiches', 'chked':False, 'label':'Sandwiches'}, 
@@ -35,7 +36,8 @@ def index(request):
         {'val':'coffee', 'chked':False, 'label':'Coffee'},
         {'val':'pastries', 'chked':False, 'label':'Pastries'},
         {'val':'iceCream', 'chked':False, 'label':'Ice Cream'},
-        {'val':'drinks', 'chked':False, 'label':'Drinks'}
+        {'val':'drinks', 'chked':False, 'label':'Drinks'},
+        {'val':'mexican', 'chked':False, 'label':'Mexican'}
         ]
 
     san_fran = timezone('US/Pacific')
@@ -55,6 +57,8 @@ def index(request):
 
     try:
         allF = request.GET.get('all')
+        a = filter(lambda x: x['val'] == 'all', alls)[0]
+        a['chked'] = True
     except:
         pass
 
@@ -66,6 +70,36 @@ def index(request):
                 if food == 'openNow':
                     f = filter(lambda x: x['val'] == 'openNow', foodtypes)[0]
                     filt &= Q(schedule__start_hour__lte=sf_hour, schedule__end_hour__gte=sf_hour, schedule__day=sf_dow)
+                    f['chked'] = True
+                if food == 'pastries':
+                    qStr = ['muffins', 'pastries', 'donuts', 'bagels']
+                    for term in qStr:
+                        qchk |= Q(food_item__contains=term)
+                    f = filter(lambda x: x['val'] == food, foodtypes)[0]
+                    f['chked'] = True
+                if food == 'pastries':
+                    qStr = ['muffins', 'pastries', 'donuts', 'bagels']
+                    for term in qStr:
+                        qchk |= Q(food_item__contains=term)
+                    f = filter(lambda x: x['val'] == food, foodtypes)[0]
+                    f['chked'] = True
+                if food == 'mexican':
+                    qStr = ['taco', 'quesadillas', 'burritos', 'mexican']
+                    for term in qStr:
+                        qchk |= Q(food_item__contains=term)
+                    f = filter(lambda x: x['val'] == food, foodtypes)[0]
+                    f['chked'] = True
+                if food == 'snacks':
+                    qStr = ['candy', 'candies', 'chips', 'cookies']
+                    for term in qStr:
+                        qchk |= Q(food_item__contains=term)
+                    f = filter(lambda x: x['val'] == food, foodtypes)[0]
+                    f['chked'] = True
+                if food == 'drinks':
+                    qStr = ['soda', 'beverages', 'juice', 'milk', 'gatorade', 'cocoa', 'water']
+                    for term in qStr:
+                        qchk |= Q(food_item__contains=term)
+                    f = filter(lambda x: x['val'] == food, foodtypes)[0]
                     f['chked'] = True
                 else:
                     f = filter(lambda x: x['val'] == food, foodtypes)[0]
@@ -84,13 +118,11 @@ def index(request):
         pass
 
     qss = Truck.objects.filter(filt)
-    print foodtypes
-    print filt
 
     z = 12
     qLen = len(qss)
     template = loader.get_template('food/index.html')
-    context = RequestContext(request, {'qs': qss, 'z': z, 'len': qLen, 'foodtypes':foodtypes})
+    context = RequestContext(request, {'qs': qss, 'z': z, 'len': qLen, 'foodtypes':foodtypes, 'alltypes':alls})
 
     return HttpResponse(template.render(context))
 
